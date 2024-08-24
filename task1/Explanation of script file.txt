@@ -1,0 +1,150 @@
+Explanation
+Functions:
+Each function handles a different part of the dashboard.
+    top_apps, network_monitoring, disk_usage, system_load, memory_usage, process_monitoring, and service_monitoring collect and display       
+
+relevant data.
+   Command-line Parsing:
+
+    getopts is used to handle command-line switches.
+    Each switch corresponds to a different section of the dashboard.
+
+Full Dashboard:
+
+If no switches are provided, the script defaults to displaying the entire dashboard.
+explination:
+
+1. Shebang Line
+  '#!/bin/bash'
+     This line indicates that the script should be run using the Bash shell.
+
+2.Function Definition:-
+   top_apps() {
+      echo "Top 10 Most Used Applications:"
+       echo "------------------------------"
+       ps aux --sort=-%cpu | awk 'NR<=10 {print $0}' | head -n 10
+       echo ""
+       ps aux --sort=-%mem | awk 'NR<=10 {print $0}' | head -n 10
+       echo ""
+}
+     
+  Purpose: Display the top 10 applications consuming the most CPU and memory.
+    ps aux --sort=-%cpu lists processes sorted by CPU usage in descending order.
+    ps aux --sort=-%mem lists processes sorted by memory usage in descending order.
+    awk 'NR<=10 {print $0}' and head -n 10 limit the output to the top 10 entries.
+
+3.Network Monitoring:-
+      network_monitoring() {
+        echo "Network Monitoring:"
+        echo "-------------------"
+        netstat -an | grep ':80\|:443' | wc -l
+        echo "Packet Drops: $(netstat -i | awk '/^eth0/ {print $6}')"
+        echo "Network In/Out (MB):"
+        ifstat -i eth0 1 1 | awk 'NR==3 {print $1 " MB In, " $2 " MB Out"}'
+        echo ""
+}
+   
+
+  Purpose: Show network-related information.
+
+       netstat -an | grep ':80\|:443' | wc -l counts the number of network connections on ports 80 and 443.
+    netstat -i with awk '/^eth0/ {print $6}' shows packet drops for the eth0 interface.
+    ifstat -i eth0 1 1 reports network traffic in MB in and out over the eth0 interface.
+    
+4.Disk Usage:-
+
+      disk_usage() {
+    echo "Disk Usage:"
+    echo "-----------"
+    df -h
+    df -h | awk '$5 > 80 {print $0}'
+    echo ""
+}
+    
+     Purpose: Display disk space usage.
+df -h provides a human-readable format of disk usage.
+awk '$5 > 80 {print $0}' highlights partitions that are more than 80% full. 
+
+
+
+5.System Load:-
+
+      system_load() {
+    echo "System Load:"
+    echo "------------"
+    uptime
+    echo "CPU Usage:"
+    top -bn1 | grep "Cpu(s)"
+    echo ""
+}
+   
+       Purpose: Show system load and CPU usage.
+uptime displays the system’s uptime and load averages.
+top -bn1 | grep "Cpu(s)" shows the current CPU usage statistics
+
+
+6.Memory Usage
+      memory_usage() {
+    echo "Memory Usage:"
+    echo "--------------"
+    free -h
+    echo ""
+}
+
+     Purpose: Display memory usage.
+free -h provides a human-readable summary of total, used, and free memory.
+
+
+
+ 7.Process Monitoring:-
+     
+     process_monitoring() {
+    echo "Process Monitoring:"
+    echo "-------------------"
+    echo "Number of Active Processes: $(ps aux | wc -l)"
+    echo "Top 5 Processes by CPU Usage:"
+    ps aux --sort=-%cpu | awk 'NR<=6 {print $0}'
+    echo "Top 5 Processes by Memory Usage:"
+    ps aux --sort=-%mem | awk 'NR<=6 {print $0}'
+    echo ""
+}
+
+
+
+  Purpose: Show active processes and top resource-consuming processes.
+   ps aux | wc -l counts the total number of active processes.
+   ps aux --sort=-%cpu and ps aux --sort=-%mem list top processes by CPU and memory usage.
+
+
+8.Service Monitoring:-
+   
+    service_monitoring() {
+    echo "Service Monitoring:"
+    echo "-------------------"
+    for service in sshd nginx apache2 iptables; do
+        echo "$service status: $(systemctl is-active $service)"
+    done
+    echo ""
+}
+    
+   Purpose: Display the status of specific services.
+     systemctl is-active $service checks if each listed service is active or not.
+
+9.Command-Line Argument Parsing
+     while getopts "cpu memory network disk load processes services" opt; do
+    case $opt in
+        cpu) top_apps ;;
+        memory) memory_usage ;;
+        network) network_monitoring ;;
+        disk) disk_usage ;;
+        load) system_load ;;
+        processes) process_monitoring ;;
+        services) service_monitoring ;;
+        \?) echo "Usage: $0 [-cpu] [-memory] [-network] [-disk] [-load] [-processes] [-services]" ;;
+    esac
+done
+     Purpose: Handle command-line options to display specific sections of the dashboard.
+getopts parses the provided options.
+Each case in the case statement calls the corresponding function based on the option provided.
+\?) handles invalid options and provides usage instruction
+   
